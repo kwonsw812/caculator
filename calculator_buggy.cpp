@@ -10,6 +10,7 @@ struct Token {
 	string name;
 	Token(char ch) :kind(ch), value(0) { }
 	Token(char ch, double val) :kind(ch), value(val) { }
+	Token(char ch, string name) :kind(ch), name(name) { }
 };
 
 class Token_stream {
@@ -19,7 +20,7 @@ public:
 	Token_stream() :full(0), buffer(0) { }
 
 	Token get();
-	void putback(Token t) { buffer=t; full=true; }
+	void putback(Token);
 
 	void ignore(char);
 };
@@ -30,9 +31,14 @@ const char print = ';';
 const char number = '8';
 const char name = 'a';
 
+void Token_stream::putback(Token t)
+{
+	if (full) error("buffer full");
+	buffer = t;
+	full = true;
+}
 
-
-Token get()
+Token Token_stream::get()
 {
 	if (full) { full=false; return buffer; }
 	char ch;
@@ -136,9 +142,12 @@ double primary()
 	{	double d = expression();
 		t = ts.get();
 		if (t.kind != ')') error("'(' expected");
+		return d;
 	}
 	case '-':
 		return - primary();
+	case '+':
+		return primary();
 	case number:
 		return t.value;
 	case name:
@@ -164,6 +173,7 @@ double term()
 			break;
 		}
 		default:
+			ts.putback(t);
 			return left;
 		}
 	}
@@ -182,6 +192,7 @@ double expression()
 			left -= term();
 			break;
 		default:
+			ts.putback(t);
 			return left;
 		}
 	}
