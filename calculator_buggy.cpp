@@ -30,6 +30,11 @@ const char quit = 'Q';
 const char print = ';';
 const char number = '8';
 const char name = 'a';
+const double pi = 3.141592;
+const double e = 2.71828;
+
+bool is_declared(string);
+double get_value(string);
 
 void Token_stream::putback(Token t)
 {
@@ -77,8 +82,11 @@ Token Token_stream::get()
 			s += ch;
 			while(cin.get(ch) && (isalpha(ch) || isdigit(ch))) s += ch;
 			cin.unget();
-			if (s == "let") return Token(let);	
+			if (s == "let") return Token(let);
 			if (s == "quit") return Token(quit);
+			if (s == "pi") return Token(number, pi);
+			if (s == "e") return Token(number, e);
+			if (is_declared(s)) return Token(number, get_value(s));
 			return Token(name,s);
 		}
 		error("Bad token");
@@ -124,7 +132,7 @@ void set_value(string s, double d)
 }
 
 bool is_declared(string s)
-{
+{	
 	for (int i = 0; i<names.size(); ++i)
 		if (names[i].name == s) return true;
 	return false;
@@ -201,6 +209,7 @@ double expression()
 double declaration()
 {
 	Token t = ts.get();
+	if (t.value == 2.71828) error("e declared twice");
 	if (t.kind != name) error ("name expected in declaration");
 	string name = t.name;
 	if (is_declared(name)) error(name, " declared twice");
