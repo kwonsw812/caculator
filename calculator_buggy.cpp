@@ -30,8 +30,6 @@ const char quit = 'Q';
 const char print = ';';
 const char number = '8';
 const char name = 'a';
-const double pi = 3.141592;
-const double e = 2.71828;
 
 bool is_declared(string);
 double get_value(string);
@@ -84,8 +82,6 @@ Token Token_stream::get()
 			cin.unget();
 			if (s == "let") return Token(let);
 			if (s == "quit") return Token(quit);
-			if (s == "pi") return Token(number, pi);
-			if (s == "e") return Token(number, e);
 			if (is_declared(s)) return Token(number, get_value(s));
 			return Token(name,s);
 		}
@@ -256,8 +252,15 @@ void calculate()
 	}
 }
 
+void make_const()
+{
+	names.push_back(Variable("e", 2.71828));
+	names.push_back(Variable("pi", 3.141592));
+}
+
 int main()
 try {
+	make_const();
 	calculate();
 	return 0;
 }
