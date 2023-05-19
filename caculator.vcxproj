@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="calc.cpp" />
     <ClCompile Include="calculator_buggy.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="calc.h" />

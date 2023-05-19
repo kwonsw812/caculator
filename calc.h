@@ -6,6 +6,11 @@ const char quit = 'Q';
 const char print = ';';
 const char number = '8';
 const char name = 'a';
+const char unset = 'u';
+const char op_sqrt = 'S';
+const char op_sin = 's';
+const char op_cos = 'c';
+const char op_tan = 't';
 
 struct Token {
 	char kind;
@@ -19,6 +24,7 @@ struct Token {
 class Token_stream {
 	bool full;
 	Token buffer;
+
 public:
 	Token_stream() :full(0), buffer(0) { }
 
@@ -33,21 +39,30 @@ class Calculator
 public:
 	Calculator();
 
-	void caculate();
-
-	string get_prompt() const { return prompt; }
-	string get_result() const { return result; }
+	void calculate();
 
 private:
+	struct Variable {
+		string name;
+		double value;
+		Variable(string n, double v) :name(n), value(v) { }
+	};
+
+	vector<Variable> names;
+
+	void undeclaration();
+
+	bool is_declared(string);
+
 	double get_value(string);
 
 	void set_value(string, double);
 
-	bool is_declared(string);
-
 	double expression();
 
 	double primary();
+
+	double exponential();
 
 	double term();
 

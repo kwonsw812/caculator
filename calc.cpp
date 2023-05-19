@@ -7,21 +7,7 @@ void Token_stream::putback(Token t)
 	full = true;
 }
 
-const string prompt = Calculator->get_prompt();
-const string result = c.get_result();
-
 Token_stream ts;
-
-struct Variable {
-	string name;
-	double value;
-	Variable(string n, double v) :name(n), value(v) { }
-};
-
-vector<Variable> names;
-
-bool is_declared(string);
-double get_value(string);
 
 Token Token_stream::get()
 {
@@ -37,6 +23,7 @@ Token Token_stream::get()
 	case '/':
 	case '%':
 	case ';':
+	case '^':
 	case '=':
 		return Token(ch);
 	case '.':
@@ -62,9 +49,13 @@ Token Token_stream::get()
 			s += ch;
 			while (cin.get(ch) && (isalpha(ch) || isdigit(ch))) s += ch;
 			cin.unget();
+			if (s == "sqrt") return Token(op_sqrt);
+			if (s == "sin") return Token(op_sin);
+			if (s == "cos") return Token(op_cos);
+			if (s == "tan") return Token(op_tan);
 			if (s == "let") return Token(let);
 			if (s == "quit") return Token(quit);
-			if (is_declared(s)) return Token(number, get_value(s));
+			if (s == "unset") return Token(unset);
 			return Token(name, s);
 		}
 		error("Bad token");
@@ -86,16 +77,18 @@ void Token_stream::ignore(char c)
 
 Calculator::Calculator()
 {
+	names.push_back(Variable("e", 2.71828));
+	names.push_back(Variable("pi", 3.141592));
 }
 
-double get_value(string s)
+double Calculator::get_value(string s)
 {
 	for (int i = 0; i < names.size(); ++i)
 		if (names[i].name == s) return names[i].value;
 	error("get: undefined name ", s);
 }
 
-void set_value(string s, double d)
+void Calculator::set_value(string s, double d)
 {
 	for (int i = 0; i <= names.size(); ++i)
 		if (names[i].name == s) {
@@ -105,14 +98,14 @@ void set_value(string s, double d)
 	error("set: undefined name ", s);
 }
 
-bool is_declared(string s)
+bool Calculator::is_declared(string s)
 {
 	for (int i = 0; i < names.size(); ++i)
 		if (names[i].name == s) return true;
 	return false;
 }
 
-double primary()
+double Calculator::primary()
 {
 	Token t = ts.get();
 	switch (t.kind) {
@@ -122,6 +115,28 @@ double primary()
 	if (t.kind != ')') error("'(' expected");
 	return d;
 	}
+	case op_sqrt:
+	{
+		double d = primary();
+		if (d < 0) error("No negative for sqrt");
+		else return sqrt(d);
+	}
+	case op_sin:
+	{
+		double d = primary();
+		return sin(d);
+	}
+	case op_cos:
+	{
+		double d = primary();
+		return cos(d);
+	}
+	case op_tan:
+	{
+		double d = primary();
+		return tan(d);
+	}
+
 	case '-':
 		return -primary();
 	case '+':
@@ -129,15 +144,49 @@ double primary()
 	case number:
 		return t.value;
 	case name:
-		return t.value;
+		return get_value(t.name);
 	default:
 		error("primary expected");
 	}
 }
 
-double term()
+double Calculator::exponential()
 {
 	double left = primary();
+
+	vector<double> exp;
+
+	while (true) {
+		Token t = ts.get();
+		switch (t.kind) {
+		case '^':
+			exp.push_back(primary());
+			break;
+		default:
+			if (exp.size() >= 2) {
+				for (int i = exp.size(); i > 1; i--) {
+					exp[i - 2] = pow(exp[i - 2], exp[i - 1]);
+				}
+				left = pow(left, exp[0]);
+				ts.putback(t);
+				return left;
+			}
+			else if (exp.size() == 1) {
+				left = pow(left, exp[0]);
+				ts.putback(t);
+				return left;
+			}
+			else {
+				ts.putback(t);
+				return left;
+			}
+		}
+	}
+}
+
+double Calculator::term()
+{
+	double left = exponential();
 	while (true) {
 		Token t = ts.get();
 		switch (t.kind) {
@@ -157,7 +206,7 @@ double term()
 	}
 }
 
-double expression()
+double Calculator::expression()
 {
 	double left = term();
 	while (true) {
@@ -176,10 +225,9 @@ double expression()
 	}
 }
 
-double declaration()
+double Calculator::declaration()
 {
 	Token t = ts.get();
-	if (t.value == 2.71828) error("e declared twice");
 	if (t.kind != name) error("name expected in declaration");
 	string name = t.name;
 	if (is_declared(name)) error(name, " declared twice");
@@ -190,24 +238,45 @@ double declaration()
 	return d;
 }
 
-double statement()
+void Calculator::undeclaration()
+{
+	Token t = ts.get();
+	if (t.name != "e" && t.name != "pi" && is_declared(t.name)) {
+		for (int i = 2; i < names.size(); i++) {
+			if (t.name == names[i].name) names.erase(names.begin() + i);
+		}
+		error("Done");
+	}
+
+	else if (t.name == "e" || t.name == "pi") {
+		error("Cannot unset value");
+	}
+
+	else {
+		error("Not declared");
+	}
+}
+
+double Calculator::statement()
 {
 	Token t = ts.get();
 	switch (t.kind) {
 	case let:
 		return declaration();
+	case unset:
+		undeclaration();
 	default:
 		ts.putback(t);
 		return expression();
 	}
 }
 
-void clean_up_mess()
+void Calculator::clean_up_mess()
 {
 	ts.ignore(print);
 }
 
-void calculate()
+void Calculator::calculate()
 {
 	while (true) try {
 		cout << prompt;
@@ -221,10 +290,4 @@ void calculate()
 		cerr << e.what() << endl;
 		clean_up_mess();
 	}
-}
-
-void make_const()
-{
-	names.push_back(Variable("e", 2.71828));
-	names.push_back(Variable("pi", 3.141592));
 }
