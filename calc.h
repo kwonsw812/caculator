@@ -7,6 +7,7 @@ const char print = ';';
 const char number = '8';
 const char name = 'a';
 const char unset = 'u';
+const char change = 'ch';
 const char op_sqrt = 'S';
 const char op_sin = 's';
 const char op_cos = 'c';
@@ -49,6 +50,8 @@ private:
 	};
 
 	vector<Variable> names;
+
+	void variable_change();
 
 	void undeclaration();
 

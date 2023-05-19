@@ -56,6 +56,7 @@ Token Token_stream::get()
 			if (s == "let") return Token(let);
 			if (s == "quit") return Token(quit);
 			if (s == "unset") return Token(unset);
+			if (s == "change") return Token(change);
 			return Token(name, s);
 		}
 		error("Bad token");
@@ -257,6 +258,30 @@ void Calculator::undeclaration()
 	}
 }
 
+void Calculator::variable_change()
+{
+	Token t = ts.get();
+	if (t.name != "e" && t.name != "pi" && is_declared(t.name)) {
+		for (int i = 2; i < names.size(); i++) {
+			if (t.name == names[i].name) {
+				if (t.name == names[i].name) names.erase(names.begin() + i);
+				ts.get();
+				double d = expression();
+				names.push_back(Variable(t.name, d));
+			}
+		}
+		error("Done");
+	}
+
+	else if (t.name == "e" || t.name == "pi") {
+		error("Cannot change value");
+	}
+
+	else {
+		error("Not declared");
+	}
+}
+
 double Calculator::statement()
 {
 	Token t = ts.get();
@@ -265,6 +290,10 @@ double Calculator::statement()
 		return declaration();
 	case unset:
 		undeclaration();
+		break;
+	case change:
+		variable_change();
+		break;
 	default:
 		ts.putback(t);
 		return expression();
