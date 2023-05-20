@@ -77,6 +77,4 @@ private:
 
 	const string prompt = "> ";
 	const string result = "= ";
-
-	void make_const();
 };
